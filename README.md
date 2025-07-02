@@ -1,2 +1,399 @@
-# project-
-school project
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Kod ile Giriş/Çıkış Takip Sistemi</title>
+
+   
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+   
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+       
+        .tab-content {
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+        }
+        .tab-content.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+            position: absolute;
+        }
+      
+        .tab-button.active {
+            background-color: #4f46e5;
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-5xl bg-white rounded-2xl shadow-2xl p-6 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+        
+        
+        <div class="flex flex-col">
+            <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Giriş/Çıkış Sistemi</h1>
+            <p class="text-sm text-gray-500 -mt-1 mb-2">Created by Hayder Abbas</p>
+            <p class="text-gray-600 mb-6">Kullanıcı veya Tarayıcı/Admin modunu seçin.</p>
+
+           
+            <div class="flex border-b border-gray-200 mb-6">
+                <button id="user-tab-btn" class="tab-button flex-1 py-3 px-4 font-semibold text-gray-700 hover:bg-gray-200 rounded-t-lg transition-colors duration-200 active">Kullanıcı</button>
+                <button id="admin-tab-btn" class="tab-button flex-1 py-3 px-4 font-semibold text-gray-700 hover:bg-gray-200 rounded-t-lg transition-colors duration-200">Tarayıcı / Admin</button>
+            </div>
+
+        
+            <div class="relative flex-grow">
+             
+                <div id="user-view" class="tab-content">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Katılımcı Paneli</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="user-name" class="block text-sm font-medium text-gray-700 mb-1">Adınız Soyadınız</label>
+                            
+                            <input type="text" id="user-name" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500" placeholder="Örn: Furkan Aydın">
+                        </div>
+                        <button id="generate-qr-btn" class="w-full bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-indigo-700 transform hover:scale-105 transition-all duration-300">
+                            QR Kodumu Oluştur
+                        </button>
+                    </div>
+                    
+                    <div id="qr-code-container" class="mt-6 text-center hidden">
+                        <h3 class="font-semibold text-gray-800">Giriş için bu kodu gösterin:</h3>
+                        <div class="flex justify-center my-4">
+                           <canvas id="qrcode" class="border rounded-lg shadow-inner"></canvas>
+                        </div>
+                        <p class="text-sm text-gray-600">Kullanıcı ID'niz:</p>
+                        <code id="user-id-display" class="text-xs bg-gray-200 text-gray-800 p-2 rounded font-mono"></code>
+                        <div id="user-status" class="mt-4 font-semibold text-lg p-3 rounded-lg"></div>
+                    </div>
+                </div>
+
+             
+                <div id="admin-view" class="tab-content hidden">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800">Tarayıcı Paneli</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label for="scanned-id" class="block text-sm font-medium text-gray-700 mb-1">Taranan Kullanıcı ID'si</label>
+                            <input type="text" id="scanned-id" class="w-full p-3 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500" placeholder="Kullanıcının ID'sini buraya girin">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <button id="check-in-btn" class="w-full bg-green-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-green-700 transform hover:scale-105 transition-all duration-300">Giriş Yap</button>
+                            <button id="check-out-btn" class="w-full bg-red-600 text-white font-bold py-3 px-6 rounded-lg shadow-md hover:bg-red-700 transform hover:scale-105 transition-all duration-300">Çıkış Yap</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+           
+            <div id="message-box" class="mt-4 p-3 text-center text-sm font-medium rounded-lg opacity-0 transition-opacity duration-300"></div>
+        </div>
+
+       
+        <div class="flex flex-col bg-gray-50 p-6 rounded-lg border">
+            <h2 class="text-xl font-semibold mb-4 text-gray-800 border-b pb-2">Katılım Kayıtları (Canlı)</h2>
+            <div class="flex-grow overflow-y-auto h-96">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-100 sticky top-0">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">İsim</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Durum</th>
+                            <th class="px-4 py-3 text-left text-xs font-bold text-gray-600 uppercase tracking-wider">Zaman</th>
+                        </tr>
+                    </thead>
+                    <tbody id="attendance-log" class="bg-white divide-y divide-gray-200">
+                         <tr><td colspan="3" class="text-center p-6 text-gray-500">Henüz kayıt yok.</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, getDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+       
+        let userFirebaseConfig = {
+            
+        };
+
+       
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-qr-app';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : userFirebaseConfig;
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        let app, auth, db, userId, userName, logsCollectionRef;
+        let userLogUnsubscribe = null; 
+
+        
+        const userTabBtn = document.getElementById('user-tab-btn');
+        const adminTabBtn = document.getElementById('admin-tab-btn');
+        const userView = document.getElementById('user-view');
+        const adminView = document.getElementById('admin-view');
+        const generateQrBtn = document.getElementById('generate-qr-btn');
+        const userNameInput = document.getElementById('user-name');
+        const qrCodeContainer = document.getElementById('qr-code-container');
+        const qrcodeCanvas = document.getElementById('qrcode');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const userStatusDiv = document.getElementById('user-status');
+        const scannedIdInput = document.getElementById('scanned-id');
+        const checkInBtn = document.getElementById('check-in-btn');
+        const checkOutBtn = document.getElementById('check-out-btn');
+        const attendanceLog = document.getElementById('attendance-log');
+        const messageBox = document.getElementById('message-box');
+
+      
+        async function initializeFirebase() {
+            if (!firebaseConfig || !firebaseConfig.apiKey) {
+                 showMessage("Firebase yapılandırması eksik. Lütfen script dosyasındaki userFirebaseConfig nesnesini doldurun.", "error");
+                 console.error("Firebase config is missing. Please paste your config object in the script.");
+                 return;
+            }
+            try {
+                app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setupAuthListener();
+            } catch (error) {
+                console.error("Firebase initialization error:", error);
+                showMessage("Firebase başlatılamadı. Yapılandırmayı kontrol edin.", "error");
+            }
+        }
+       
+        function setupAuthListener() {
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    logsCollectionRef = collection(db, `artifacts/${appId}/public/data/attendance_logs`);
+                    listenForAttendanceLogs(); 
+                } else {
+                    await signIn();
+                }
+            });
+        }
+
+       
+        async function signIn() {
+            try {
+               
+                if (initialAuthToken) {
+                    await signInWithCustomToken(auth, initialAuthToken);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Authentication failed:", error);
+                showMessage("Kimlik doğrulama başarısız oldu. Firebase projenizde 'Anonymous' sağlayıcısının etkin olduğundan emin olun.", "error");
+            }
+        }
+        
+       
+        
+        function switchTab(activeTab) {
+            if (activeTab === 'user') {
+                userView.classList.remove('hidden');
+                adminView.classList.add('hidden');
+                userTabBtn.classList.add('active');
+                adminTabBtn.classList.remove('active');
+            } else {
+                adminView.classList.remove('hidden');
+                userView.classList.add('hidden');
+                adminTabBtn.classList.add('active');
+                userTabBtn.classList.remove('active');
+            }
+        }
+
+        userTabBtn.addEventListener('click', () => switchTab('user'));
+        adminTabBtn.addEventListener('click', () => switchTab('admin'));
+        
+        generateQrBtn.addEventListener('click', () => {
+            userName = userNameInput.value.trim();
+            if (!userName) {
+                showMessage("Lütfen adınızı girin.", "error");
+                return;
+            }
+            if (!userId) {
+                showMessage("Kullanıcı kimliği alınamadı. Lütfen sayfayı yenileyin.", "error");
+                return;
+            }
+            generateQrCode(userId);
+            qrCodeContainer.classList.remove('hidden');
+            userIdDisplay.textContent = userId;
+            listenForUserLog();
+        });
+
+        checkInBtn.addEventListener('click', () => handleCheckInOut('in'));
+        checkOutBtn.addEventListener('click', () => handleCheckInOut('out'));
+
+        function generateQrCode(id) {
+            if (typeof QRCode === 'undefined') {
+                console.error("QRCode library is not loaded. Check the script tag.");
+                showMessage("QR Kod kütüphanesi yüklenemedi. İnternet bağlantınızı kontrol edip sayfayı yenileyin.", "error");
+                return;
+            }
+
+            try {
+                QRCode.toCanvas(qrcodeCanvas, id, { width: 200, errorCorrectionLevel: 'H' }, (error) => {
+                    if (error) {
+                        console.error("Error from QRCode.toCanvas callback:", error);
+                        showMessage("QR Kod oluşturulurken bir hata oluştu.", "error");
+                    }
+                });
+            } catch (error) {
+                 console.error("Failed to execute QRCode.toCanvas:", error);
+                 showMessage("QR Kod oluşturma fonksiyonu çalıştırılamadı.", "error");
+            }
+        }
+
+        async function handleCheckInOut(type) {
+            const scannedUserId = scannedIdInput.value.trim();
+            if (!scannedUserId) {
+                showMessage("Lütfen bir kullanıcı ID'si girin.", "error");
+                return;
+            }
+
+            try {
+                const userLogRef = doc(logsCollectionRef, scannedUserId);
+                const userDoc = await getDoc(userLogRef);
+                
+                let userData = userDoc.exists() ? userDoc.data() : {};
+
+                if (type === 'in') {
+                    if (userData.status === 'Giriş Yaptı') {
+                         showMessage("Bu kullanıcı zaten giriş yapmış.", "info");
+                         return;
+                    }
+                    const dataToSet = {
+                        status: 'Giriş Yaptı',
+                        lastCheckIn: serverTimestamp(),
+                        userName: userData.userName || 'Bilinmiyor'
+                    };
+                    await setDoc(userLogRef, dataToSet, { merge: true });
+                    showMessage(`${scannedUserId} için giriş yapıldı.`, "success");
+
+                } else { 
+                     if (userData.status !== 'Giriş Yaptı') {
+                         showMessage("Kullanıcı giriş yapmamış veya zaten çıkış yapmış.", "info");
+                         return;
+                    }
+                    await setDoc(userLogRef, {
+                        status: 'Çıkış Yaptı',
+                        lastCheckOut: serverTimestamp()
+                    }, { merge: true });
+                    showMessage(`${scannedUserId} için çıkış yapıldı.`, "success");
+                }
+                 scannedIdInput.value = '';
+            } catch (error) {
+                console.error(`Error during ${type}:`, error);
+                showMessage("İşlem sırasında bir hata oluştu.", "error");
+            }
+        }
+        
+
+        function listenForAttendanceLogs() {
+            onSnapshot(logsCollectionRef, (snapshot) => {
+                const logs = [];
+                snapshot.forEach(doc => {
+                    logs.push({ id: doc.id, ...doc.data() });
+                });
+                renderAttendanceLog(logs);
+            }, (error) => {
+                console.error("Error listening to logs:", error);
+                showMessage("Kayıtlar alınırken hata oluştu.", "error");
+            });
+        }
+        
+        function listenForUserLog() {
+            if (userLogUnsubscribe) {
+                userLogUnsubscribe();
+            }
+            
+            const userLogRef = doc(logsCollectionRef, userId);
+            setDoc(userLogRef, { userName: userName, userId: userId }, { merge: true });
+
+            userLogUnsubscribe = onSnapshot(userLogRef, (doc) => {
+                if (doc.exists()) {
+                    updateUserStatus(doc.data());
+                } else {
+                     updateUserStatus({ status: 'Kayıtlı Değil' });
+                }
+            });
+        }
+
+        
+
+        function renderAttendanceLog(logs) {
+            attendanceLog.innerHTML = ''; 
+            if (logs.length === 0) {
+                 attendanceLog.innerHTML = '<tr><td colspan="3" class="text-center p-6 text-gray-500">Henüz kayıt yok.</td></tr>';
+                 return;
+            }
+            logs.sort((a, b) => {
+                if (a.status === 'Giriş Yaptı' && b.status !== 'Giriş Yaptı') return -1;
+                if (a.status !== 'Giriş Yaptı' && b.status === 'Giriş Yaptı') return 1;
+                return (a.userName || '').localeCompare(b.userName || '');
+            });
+
+            logs.forEach(log => {
+                const tr = document.createElement('tr');
+                const statusColor = log.status === 'Giriş Yaptı' ? 'text-green-600' : 'text-red-600';
+                const time = log.status === 'Giriş Yaptı' 
+                    ? new Date(log.lastCheckIn?.toDate()).toLocaleTimeString('tr-TR')
+                    : new Date(log.lastCheckOut?.toDate()).toLocaleTimeString('tr-TR');
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 whitespace-nowrap">
+                        <div class="font-medium text-gray-900">${log.userName || 'Bilinmiyor'}</div>
+                        <div class="text-xs text-gray-500 font-mono">${log.id}</div>
+                    </td>
+                    <td class="px-4 py-3 whitespace-nowrap font-semibold ${statusColor}">${log.status || 'N/A'}</td>
+                    <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-700">${log.lastCheckIn || log.lastCheckOut ? time : '---'}</td>
+                `;
+                attendanceLog.appendChild(tr);
+            });
+        }
+
+        function updateUserStatus(logData) {
+            const status = logData.status || 'Kayıtlı Değil';
+            userStatusDiv.textContent = `Durumunuz: ${status}`;
+            if (status === 'Giriş Yaptı') {
+                userStatusDiv.className = 'mt-4 font-semibold text-lg p-3 rounded-lg bg-green-100 text-green-800';
+            } else if (status === 'Çıkış Yaptı') {
+                userStatusDiv.className = 'mt-4 font-semibold text-lg p-3 rounded-lg bg-red-100 text-red-800';
+            } else {
+                 userStatusDiv.className = 'mt-4 font-semibold text-lg p-3 rounded-lg bg-gray-100 text-gray-800';
+            }
+        }
+        
+        function showMessage(message, type = 'info') {
+            messageBox.textContent = message;
+            messageBox.classList.remove('bg-green-100', 'text-green-800', 'bg-red-100', 'text-red-800', 'bg-blue-100', 'text-blue-800');
+            
+            if (type === 'success') messageBox.classList.add('bg-green-100', 'text-green-800');
+            else if (type === 'error') messageBox.classList.add('bg-red-100', 'text-red-800');
+            else messageBox.classList.add('bg-blue-100', 'text-blue-800');
+
+            messageBox.style.opacity = '1';
+            setTimeout(() => { messageBox.style.opacity = '0'; }, 4000);
+        }
+
+      
+        initializeFirebase();
+
+    </script>
+</body>
+</html>
